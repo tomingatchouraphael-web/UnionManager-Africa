@@ -1,288 +1,224 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { 
-  Users, TrendingUp, Calendar, AlertCircle, 
-  DollarSign, FileText, Bell, ArrowUpRight,
-  ArrowDownRight, Activity, Shield, Zap
-} from "lucide-react";
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useState } from "react";
+import { Plus, Search, AlertCircle, Clock, CheckCircle, XCircle, Eye, ChevronRight } from "lucide-react";
 
-const cotisationsData = [
-  { mois: "Jan", montant: 1200000 },
-  { mois: "Fév", montant: 1850000 },
-  { mois: "Mar", montant: 1600000 },
-  { mois: "Avr", montant: 2100000 },
-  { mois: "Mai", montant: 1900000 },
-  { mois: "Jun", montant: 2400000 },
-  { mois: "Jul", montant: 2200000 },
-  { mois: "Aoû", montant: 2600000 },
+const PLAINTES = [
+  { id: "PLT-2025-001", declarant: "Moussa Ndiaye", entreprise: "SENELEC", objet: "Licenciement abusif", categorie: "licenciement", priorite: "haute", statut: "en instruction", date: "2025-07-01", responsable: "Me. Fatou Diop", description: "Le membre a été licencié sans préavis et sans motif valable après 15 ans de service." },
+  { id: "PLT-2025-002", declarant: "Aissatou Badji", entreprise: "Ministère Éducation", objet: "Harcèlement au travail", categorie: "harcèlement", priorite: "haute", statut: "ouverte", date: "2025-07-05", responsable: "Non assigné", description: "Plainte pour harcèlement moral de la part du supérieur hiérarchique." },
+  { id: "PLT-2025-003", declarant: "Cheikh Thiam", entreprise: "Port Autonome Dakar", objet: "Non-paiement heures supplémentaires", categorie: "salaire", priorite: "normale", statut: "en médiation", date: "2025-06-20", responsable: "Ibrahima Gueye", description: "Heures supplémentaires effectuées depuis 6 mois non compensées." },
+  { id: "PLT-2025-004", declarant: "Ramatou Kouyaté", entreprise: "Société X", objet: "Discrimination à l'embauche", categorie: "discrimination", priorite: "normale", statut: "résolue", date: "2025-05-15", responsable: "Me. Fatou Diop", description: "Discrimination à raison du sexe lors du processus de promotion interne." },
+  { id: "PLT-2025-005", declarant: "Omar Faye", entreprise: "Banque de Dakar", objet: "Conditions de travail dangereuses", categorie: "sécurité", priorite: "urgente", statut: "ouverte", date: "2025-07-10", responsable: "Non assigné", description: "Locaux non conformes aux normes de sécurité incendie." },
 ];
 
-const membresParRegion = [
-  { region: "Dakar", membres: 420 },
-  { region: "Thiès", membres: 280 },
-  { region: "Saint-Louis", membres: 190 },
-  { region: "Ziguinchor", membres: 150 },
-  { region: "Kaolack", membres: 130 },
-];
+const STATUT_CFG: Record<string, { label: string; cls: string; icon: typeof Clock }> = {
+  ouverte: { label: "Ouverte", cls: "bg-blue-50 text-blue-700 border-blue-200", icon: AlertCircle },
+  "en instruction": { label: "En instruction", cls: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
+  "en médiation": { label: "En médiation", cls: "bg-purple-50 text-purple-700 border-purple-200", icon: Clock },
+  résolue: { label: "Résolue", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle },
+  classée: { label: "Classée", cls: "bg-gray-100 text-gray-600 border-gray-200", icon: XCircle },
+};
 
-const statutMembres = [
-  { name: "Actifs", value: 1240, color: "#10B981" },
-  { name: "En retard", value: 320, color: "#F59E0B" },
-  { name: "Inactifs", value: 180, color: "#EF4444" },
-];
+const PRIORITE_CFG: Record<string, string> = {
+  urgente: "bg-red-100 text-red-700",
+  haute: "bg-orange-100 text-orange-700",
+  normale: "bg-gray-100 text-gray-600",
+};
 
-const statsCards = [
-  {
-    title: "Total Membres",
-    value: "1,740",
-    change: "+12%",
-    up: true,
-    icon: Users,
-    color: "from-emerald-500 to-teal-600",
-    bg: "bg-emerald-50",
-    text: "text-emerald-600",
-  },
-  {
-    title: "Membres Actifs",
-    value: "1,240",
-    change: "+8%",
-    up: true,
-    icon: Activity,
-    color: "from-blue-500 to-indigo-600",
-    bg: "bg-blue-50",
-    text: "text-blue-600",
-  },
-  {
-    title: "Cotisations (FCFA)",
-    value: "2,6M",
-    change: "+18%",
-    up: true,
-    icon: DollarSign,
-    color: "from-amber-500 to-orange-600",
-    bg: "bg-amber-50",
-    text: "text-amber-600",
-  },
-  {
-    title: "Réunions Prévues",
-    value: "8",
-    change: "Ce mois",
-    up: true,
-    icon: Calendar,
-    color: "from-purple-500 to-violet-600",
-    bg: "bg-purple-50",
-    text: "text-purple-600",
-  },
-  {
-    title: "Plaintes en Cours",
-    value: "23",
-    change: "-5%",
-    up: false,
-    icon: AlertCircle,
-    color: "from-red-500 to-rose-600",
-    bg: "bg-red-50",
-    text: "text-red-600",
-  },
-  {
-    title: "Solde Trésorerie",
-    value: "14,2M",
-    change: "+22%",
-    up: true,
-    icon: TrendingUp,
-    color: "from-cyan-500 to-sky-600",
-    bg: "bg-cyan-50",
-    text: "text-cyan-600",
-  },
-];
+const CATEGORIE_CFG: Record<string, string> = {
+  licenciement: "bg-red-50 text-red-700",
+  harcèlement: "bg-purple-50 text-purple-700",
+  salaire: "bg-amber-50 text-amber-700",
+  discrimination: "bg-blue-50 text-blue-700",
+  sécurité: "bg-orange-50 text-orange-700",
+};
 
-const recentActivities = [
-  { action: "Nouveau membre inscrit", name: "Amadou Diallo", time: "Il y a 15 min", type: "member" },
-  { action: "Cotisation reçue", name: "Section Dakar-Nord", time: "Il y a 1h", type: "payment" },
-  { action: "Réunion planifiée", name: "Assemblée Générale Q3", time: "Il y a 2h", type: "meeting" },
-  { action: "Plainte déposée", name: "Fatou Sow vs Entreprise X", time: "Il y a 3h", type: "complaint" },
-  { action: "Document uploadé", name: "PV Réunion Juillet 2025", time: "Il y a 5h", type: "document" },
-];
+function NouvellePlaintegModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-bold text-gray-900">Déclarer une Plainte</h2>
+          <p className="text-sm text-gray-500">Enregistrez une nouvelle plainte syndicale</p>
+        </div>
+        <div className="p-6 space-y-4">
+          {[
+            { label: "Membre déclarant", placeholder: "Rechercher un membre...", required: true },
+            { label: "Entreprise / Administration concernée", placeholder: "Ex: SENELEC", required: true },
+            { label: "Objet de la plainte", placeholder: "Résumé en une ligne...", required: true },
+          ].map(f => (
+            <div key={f.label}>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">{f.label} {f.required && <span className="text-red-500">*</span>}</label>
+              <input className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400" placeholder={f.placeholder} />
+            </div>
+          ))}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Catégorie</label>
+              <select className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400">
+                {["Licenciement abusif", "Harcèlement", "Non-paiement salaire", "Discrimination", "Sécurité au travail", "Autre"].map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Priorité</label>
+              <select className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400">
+                {["Normale", "Haute", "Urgente"].map(p => <option key={p}>{p}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description détaillée <span className="text-red-500">*</span></label>
+            <textarea className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400 resize-none" rows={4} placeholder="Décrivez les faits en détail..." />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Responsable assigné</label>
+            <select className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-400">
+              <option>Non assigné</option>
+              <option>Me. Fatou Diop - Juriste</option>
+              <option>Ibrahima Gueye - Délégué</option>
+            </select>
+          </div>
+        </div>
+        <div className="px-6 pb-6 flex justify-end gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">Annuler</button>
+          <button className="px-5 py-2.5 text-sm bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700">Enregistrer la Plainte</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-const prochaines_reunions = [
-  { titre: "AG Section Dakar", date: "15 Août 2025", participants: 85, lieu: "Salle Conférence A" },
-  { titre: "Comité Exécutif", date: "18 Août 2025", participants: 12, lieu: "Siège National" },
-  { titre: "Négociation Salariale", date: "22 Août 2025", participants: 6, lieu: "Ministère du Travail" },
-];
+export default function PlaintesPage() {
+  const [search, setSearch] = useState("");
+  const [statut, setStatut] = useState("Tous");
+  const [showCreate, setShowCreate] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
-export default function DashboardPage() {
-  const [greeting, setGreeting] = useState("Bonjour");
+  const counts = {
+    ouverte: PLAINTES.filter(p => p.statut === "ouverte").length,
+    "en instruction": PLAINTES.filter(p => p.statut === "en instruction").length,
+    résolue: PLAINTES.filter(p => p.statut === "résolue").length,
+  };
 
-  useEffect(() => {
-    const h = new Date().getHours();
-    if (h < 12) setGreeting("Bonjour");
-    else if (h < 18) setGreeting("Bon après-midi");
-    else setGreeting("Bonsoir");
-  }, []);
+  const filtered = PLAINTES.filter(p => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || p.declarant.toLowerCase().includes(q) || p.objet.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+    const matchStatut = statut === "Tous" || p.statut === statut;
+    return matchSearch && matchStatut;
+  });
 
   return (
     <div className="min-h-screen bg-[#F8F7F4] font-['Outfit',sans-serif]">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500 font-medium tracking-wider uppercase">
-              {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-            </p>
-            <h1 className="text-3xl font-bold text-gray-900 mt-1">
-              {greeting}, <span className="text-emerald-600">Secrétaire Général</span> 👋
-            </h1>
+      {showCreate && <NouvellePlaintegModal onClose={() => setShowCreate(false)} />}
+
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gestion des Plaintes</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{PLAINTES.length} dossiers enregistrés</p>
+        </div>
+        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 shadow-sm">
+          <Plus size={15} /> Nouvelle Plainte
+        </button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {[
+          { label: "Total Dossiers", value: PLAINTES.length, cls: "border-gray-200", val_cls: "text-gray-900" },
+          { label: "Ouvertes", value: counts.ouverte, cls: "border-blue-200 bg-blue-50/50", val_cls: "text-blue-700" },
+          { label: "En instruction", value: counts["en instruction"], cls: "border-amber-200 bg-amber-50/50", val_cls: "text-amber-700" },
+          { label: "Résolues", value: counts.résolue, cls: "border-emerald-200 bg-emerald-50/50", val_cls: "text-emerald-700" },
+        ].map((c, i) => (
+          <div key={i} className={`bg-white rounded-2xl p-4 border ${c.cls} shadow-sm`}>
+            <p className={`text-3xl font-bold ${c.val_cls}`}>{c.value}</p>
+            <p className="text-sm text-gray-500 mt-1">{c.label}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="relative p-2.5 bg-white rounded-xl border border-gray-200 hover:border-emerald-300 transition-all shadow-sm">
-              <Bell size={20} className="text-gray-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+        ))}
+      </div>
+
+      {/* Filter */}
+      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm mb-6 flex gap-3 items-center flex-wrap">
+        <div className="flex-1 min-w-52 relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher par nom, objet, référence..." className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-red-400" />
+        </div>
+        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+          {["Tous", "ouverte", "en instruction", "en médiation", "résolue"].map(s => (
+            <button key={s} onClick={() => setStatut(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${statut === s ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+              {s}
             </button>
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                SG
-              </div>
-              <span className="text-sm font-semibold text-gray-700">Moussa Camara</span>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {statsCards.map((card, i) => {
-          const Icon = card.icon;
+      {/* Plaintes List */}
+      <div className="space-y-3">
+        {filtered.map(p => {
+          const cfg = STATUT_CFG[p.statut] || STATUT_CFG.ouverte;
+          const StatusIcon = cfg.icon;
+          const isExpanded = expanded === p.id;
           return (
-            <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all group cursor-pointer">
-              <div className="flex items-start justify-between mb-4">
-                <div className={`p-2.5 ${card.bg} rounded-xl`}>
-                  <Icon size={20} className={card.text} />
+            <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div
+                className="p-5 cursor-pointer hover:bg-gray-50/50 transition-colors"
+                onClick={() => setExpanded(isExpanded ? null : p.id)}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`p-2.5 rounded-xl ${CATEGORIE_CFG[p.categorie] || "bg-gray-100"}`}>
+                    <AlertCircle size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-xs font-mono text-gray-400">{p.id}</span>
+                      <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${PRIORITE_CFG[p.priorite]}`}>{p.priorite}</span>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.cls}`}>
+                        <StatusIcon size={10} className="inline mr-1" />{cfg.label}
+                      </span>
+                    </div>
+                    <p className="font-bold text-gray-900">{p.objet}</p>
+                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                      <span>👤 {p.declarant}</span>
+                      <span>🏢 {p.entreprise}</span>
+                      <span>📅 {new Date(p.date).toLocaleDateString("fr-FR")}</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} className={`text-gray-300 mt-1 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                 </div>
-                <span className={`flex items-center gap-1 text-xs font-semibold ${card.up ? "text-emerald-600" : "text-red-500"}`}>
-                  {card.up ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                  {card.change}
-                </span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-              <p className="text-sm text-gray-500 mt-1">{card.title}</p>
+
+              {isExpanded && (
+                <div className="border-t border-gray-100 p-5 bg-gray-50/50">
+                  <p className="text-sm text-gray-700 mb-4">{p.description}</p>
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="bg-white rounded-xl p-3 border border-gray-100">
+                      <p className="text-xs text-gray-400 mb-1">Responsable</p>
+                      <p className="text-sm font-semibold text-gray-800">{p.responsable}</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-3 border border-gray-100">
+                      <p className="text-xs text-gray-400 mb-1">Catégorie</p>
+                      <p className="text-sm font-semibold text-gray-800 capitalize">{p.categorie}</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-3 border border-gray-100">
+                      <p className="text-xs text-gray-400 mb-1">Date ouverture</p>
+                      <p className="text-sm font-semibold text-gray-800">{new Date(p.date).toLocaleDateString("fr-FR")}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="px-4 py-2 text-sm bg-white border border-gray-200 text-gray-700 rounded-xl font-medium hover:border-blue-300 hover:text-blue-600 transition-colors flex items-center gap-1.5">
+                      <Eye size={13} /> Voir dossier complet
+                    </button>
+                    {p.statut !== "résolue" && (
+                      <button className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+                        Mettre à jour le statut
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Cotisations Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="font-bold text-gray-900">Évolution des Cotisations</h3>
-              <p className="text-sm text-gray-500">8 derniers mois (FCFA)</p>
-            </div>
-            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full">+18% ce mois</span>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={cotisationsData}>
-              <defs>
-                <linearGradient id="colorCot" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-              <XAxis dataKey="mois" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v/1000000}M`} />
-              <Tooltip formatter={(v: number) => [`${v.toLocaleString()} FCFA`, "Cotisations"]} />
-              <Area type="monotone" dataKey="montant" stroke="#10B981" strokeWidth={2.5} fill="url(#colorCot)" dot={{ fill: "#10B981", r: 4 }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Pie Chart */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <h3 className="font-bold text-gray-900 mb-1">Statut des Membres</h3>
-          <p className="text-sm text-gray-500 mb-4">Répartition actuelle</p>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie data={statutMembres} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
-                {statutMembres.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v: number) => [v, "membres"]} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="space-y-2 mt-2">
-            {statutMembres.map((item, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }}></div>
-                  <span className="text-sm text-gray-600">{item.name}</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Bar Chart */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <h3 className="font-bold text-gray-900 mb-1">Membres par Région</h3>
-          <p className="text-sm text-gray-500 mb-4">Top 5 régions</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={membresParRegion} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-              <YAxis dataKey="region" type="category" tick={{ fontSize: 12, fill: "#6B7280" }} axisLine={false} tickLine={false} width={65} />
-              <Tooltip />
-              <Bar dataKey="membres" fill="#10B981" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <h3 className="font-bold text-gray-900 mb-4">Activité Récente</h3>
-          <div className="space-y-3">
-            {recentActivities.map((act, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                  act.type === "member" ? "bg-blue-500" :
-                  act.type === "payment" ? "bg-emerald-500" :
-                  act.type === "meeting" ? "bg-purple-500" :
-                  act.type === "complaint" ? "bg-red-500" : "bg-gray-400"
-                }`}></div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-700">{act.action}</p>
-                  <p className="text-xs text-gray-500 truncate">{act.name}</p>
-                </div>
-                <span className="text-xs text-gray-400 flex-shrink-0">{act.time}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Upcoming Meetings */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <h3 className="font-bold text-gray-900 mb-4">Prochaines Réunions</h3>
-          <div className="space-y-3">
-            {prochaines_reunions.map((r, i) => (
-              <div key={i} className="p-3 bg-gray-50 rounded-xl hover:bg-emerald-50 transition-colors cursor-pointer group">
-                <div className="flex items-start justify-between">
-                  <p className="text-sm font-semibold text-gray-800 group-hover:text-emerald-700">{r.titre}</p>
-                  <span className="text-xs text-emerald-600 font-medium ml-2 flex-shrink-0">{r.participants} pers.</span>
-                </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-xs text-gray-500">📅 {r.date}</span>
-                </div>
-                <span className="text-xs text-gray-400">📍 {r.lieu}</span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
